@@ -29,7 +29,7 @@ func Init(cfg *config.Config) {
 
 	mw := io.MultiWriter(writers...)
 
-	log = zerolog.New(mw).With().Timestamp().Logger()
+	log = zerolog.New(mw).With().Timestamp().Caller().Logger()
 	log.Fatal()
 }
 
