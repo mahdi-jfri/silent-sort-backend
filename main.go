@@ -1,8 +1,28 @@
 package main
 
-//TIP <p>To run your code, right-click the code and select <b>Run</b>.</p> <p>Alternatively, click
-// the <icon src="AllIcons.Actions.Execute"/> icon in the gutter and select the <b>Run</b> menu item from here.</p>
+import (
+	"fmt"
+	"github.com/joho/godotenv"
+	"github.com/kelseyhightower/envconfig"
+	"silent-sort/internal/config"
+	"silent-sort/internal/logger"
+)
+
+func mustGetConfig() *config.Config {
+	err := godotenv.Load()
+	if err != nil {
+		panic(fmt.Errorf("Failed to load .env file: %w", err))
+	}
+	cfg := &config.Config{}
+	err = envconfig.Process("", cfg)
+	if err != nil {
+		panic(fmt.Errorf("Failed to load config: %w", err))
+	}
+	return cfg
+}
 
 func main() {
-
+	cfg := mustGetConfig()
+	logger.Init(cfg)
+	logger.Info().Interface("cfg", cfg).Msg("LOG?")
 }
