@@ -4,16 +4,20 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"net/http"
 	"silent-sort/internal/config"
 	"silent-sort/internal/logger"
+	"silent-sort/pkg/game"
+	"silent-sort/pkg/hub"
 	"time"
 
 	"github.com/gorilla/websocket"
 )
 
 type WebsocketServer struct {
-	cfg *config.Config
+	cfg       *config.Config
+	hubKeeper *hub.HubKeeper
 }
 
 var upgrader = websocket.Upgrader{
@@ -25,35 +29,50 @@ var upgrader = websocket.Upgrader{
 }
 
 func NewWebsocketServer(cfg *config.Config) *WebsocketServer {
-	return &WebsocketServer{cfg: cfg}
+	return &WebsocketServer{cfg: cfg, hubKeeper: hub.NewHubKeeper()}
 }
 
 func (s *WebsocketServer) handleConnections(w http.ResponseWriter, r *http.Request) {
-	ws, err := upgrader.Upgrade(w, r, nil)
+	roomId := r.URL.Query().Get("room_id")
+	if roomId == "" {
+		http.Error(w, "room_id parameter is required", http.StatusBadRequest)
+		return
+	}
+
+	name := r.URL.Query().Get("name")
+	if name == "" {
+		http.Error(w, "name parameter is required", http.StatusBadRequest)
+		return
+	}
+
+	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		logger.Error().Err(err).Msg("Failed to upgrade connection")
 		return
 	}
-	defer func(ws *websocket.Conn) {
-		if err := ws.Close(); err != nil {
-			logger.Error().Err(err).Msg("Websocket close failed")
-		}
-	}(ws)
 
-	for {
-		messageType, p, err := ws.ReadMessage()
-		if err != nil {
-			if !websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway) {
-				logger.Error().Err(err).Msg("Error reading message")
-			}
-			break
-		}
-
-		if err := ws.WriteMessage(messageType, p); err != nil {
-			logger.Error().Err(err).Msg("Error writing message")
-			break
-		}
+	client := &Client{
+		player: hub.NewPlayer(uuid.NewString(), name, conn),
+		conn:   conn,
 	}
+
+	requestedHub := s.hubKeeper.GetHub(roomId)
+
+	if requestedHub == nil {
+		requestedHub = hub.NewHub(roomId, client.player, game.NewSimpleSilentSortGame(100))
+		s.hubKeeper.SetHub(roomId, requestedHub)
+		client.player.Hub = requestedHub
+		go func() {
+			requestedHub.Run(context.Background())
+			s.hubKeeper.SetHub(roomId, nil)
+		}()
+	} else {
+		client.player.Hub = requestedHub
+		requestedHub.Messages <- &hub.MessageEnter{Player: client.player}
+	}
+
+	go client.writePump()
+	go client.readPump()
 }
 
 func (s *WebsocketServer) Run(ctx context.Context) error {
