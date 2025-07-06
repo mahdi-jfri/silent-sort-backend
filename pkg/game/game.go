@@ -9,6 +9,7 @@ type SilentSortGame interface {
 	CanPlayCard(player string, cardId string) bool
 	PlayCard(player string, cardId string)
 	CanStartGame() bool
+	CanRestartGame() bool
 	StartGame(players []string)
 	RemovePlayer(player string)
 	GetPlayerCards(player string) []Card
@@ -16,6 +17,7 @@ type SilentSortGame interface {
 	GetGameState() string
 	ShouldShowAllCards() bool
 	GetAllCards() []Card
+	RestartGame()
 }
 
 type Card struct {

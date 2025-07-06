@@ -16,3 +16,7 @@ type MessagePlayCard struct {
 	Player *Player
 	CardId string
 }
+
+type MessageRestartGame struct {
+	Player *Player
+}

@@ -65,7 +65,8 @@ func (c *Client) readPump() {
 			cardId := cardIdAny.(string)
 			logger.Info().Msg("Sending play card message")
 			c.player.Hub.Messages <- &hub.MessagePlayCard{Player: c.player, CardId: cardId}
-			logger.Info().Msg("Sent")
+		} else if messageJson.MessageType == 4 {
+			c.player.Hub.Messages <- &hub.MessageRestartGame{Player: c.player}
 		}
 	}
 }

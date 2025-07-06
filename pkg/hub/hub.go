@@ -44,6 +44,8 @@ func (h *Hub) Run(ctx context.Context) {
 				h.startGame(message.(*MessageStartGame))
 			case *MessagePlayCard:
 				h.playCard(message.(*MessagePlayCard))
+			case *MessageRestartGame:
+				h.restartGame(message.(*MessageRestartGame))
 			default:
 				panic(fmt.Errorf("invalid message: %+v", message))
 			}
@@ -147,8 +149,9 @@ func (h *Hub) getGeneralGameData() interface{} {
 	allPlayers := []interface{}{}
 	for _, player := range h.players {
 		allPlayers = append(allPlayers, map[string]any{
-			"id":   player.id,
-			"name": player.name,
+			"id":       player.id,
+			"name":     player.name,
+			"is_owner": player == h.owner,
 		})
 	}
 	playedCards := []interface{}{}
@@ -194,4 +197,14 @@ func (h *Hub) getPlayerData(player *Player) interface{} {
 		"cards":    playerCards,
 		"is_owner": h.owner == player,
 	}
+}
+
+func (h *Hub) restartGame(message *MessageRestartGame) {
+	if h.owner != message.Player {
+		return
+	}
+	if !h.game.CanRestartGame() {
+		return
+	}
+	h.game.RestartGame()
 }

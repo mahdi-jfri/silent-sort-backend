@@ -76,6 +76,10 @@ func (s *SimpleSilentSortGame) CanStartGame() bool {
 	return s.gameState == GameStateInLobby
 }
 
+func (s *SimpleSilentSortGame) CanRestartGame() bool {
+	return s.gameState == GameStateWon || s.gameState == GameStateLost
+}
+
 func (s *SimpleSilentSortGame) StartGame(players []string) {
 	s.players = players
 	s.cardsById = map[string]Card{}
@@ -170,4 +174,11 @@ func (s *SimpleSilentSortGame) GetAllCards() []Card {
 		cards = append(cards, card)
 	}
 	return cards
+}
+
+func (s *SimpleSilentSortGame) RestartGame() {
+	s.gameState = GameStateInLobby
+	s.cardsById = map[string]Card{}
+	s.playedCardsById = map[string]bool{}
+	s.playedCardIds = []string{}
 }
