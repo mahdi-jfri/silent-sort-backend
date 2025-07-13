@@ -21,18 +21,20 @@ type SimpleSilentSortGame struct {
 	playedCardsById map[string]bool
 	playedCardIds   []string
 	limit           int
+	cardsInHand     int
 }
 
 func NewSimpleSilentSortGame(limit int) *SimpleSilentSortGame {
 	return &SimpleSilentSortGame{
-		gameState: GameStateInLobby,
-		players:   nil,
-		limit:     limit,
+		gameState:   GameStateInLobby,
+		players:     nil,
+		limit:       limit,
+		cardsInHand: 1,
 	}
 }
 
 func (s *SimpleSilentSortGame) CanAnyoneEnter() bool {
-	return true
+	return len(s.players)+1 <= s.limit
 }
 
 func (s *SimpleSilentSortGame) HasBeenPlayed(cardId string) bool {
@@ -87,12 +89,13 @@ func (s *SimpleSilentSortGame) StartGame(players []string) {
 	s.playedCardIds = nil
 
 	s.gameState = GameStateStarted
-	cardNumbers := GenerateCardNumbers(len(s.players), s.limit)
+	s.cardsInHand = min(s.cardsInHand, s.limit/len(s.players))
+	cardNumbers := GenerateCardNumbers(len(s.players)*s.cardsInHand, s.limit)
 	for i, cardNumber := range cardNumbers {
 		card := Card{
 			Number: cardNumber,
 			Id:     uuid.NewString(),
-			Holder: players[i],
+			Holder: players[i%len(s.players)],
 		}
 		s.cardsById[card.Id] = card
 	}
@@ -177,6 +180,11 @@ func (s *SimpleSilentSortGame) GetAllCards() []Card {
 }
 
 func (s *SimpleSilentSortGame) RestartGame() {
+	if s.gameState == GameStateWon {
+		s.cardsInHand++
+	} else if s.gameState == GameStateLost {
+		s.cardsInHand = 1
+	}
 	s.gameState = GameStateInLobby
 	s.cardsById = map[string]Card{}
 	s.playedCardsById = map[string]bool{}
