@@ -32,7 +32,7 @@ func NewSimpleSilentSortGame(limit int) *SimpleSilentSortGame {
 }
 
 func (s *SimpleSilentSortGame) CanAnyoneEnter() bool {
-	return s.gameState == GameStateInLobby
+	return true
 }
 
 func (s *SimpleSilentSortGame) HasBeenPlayed(cardId string) bool {
